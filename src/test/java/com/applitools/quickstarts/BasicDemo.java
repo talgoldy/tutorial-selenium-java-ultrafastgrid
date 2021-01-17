@@ -1,101 +1,58 @@
 package com.applitools.quickstarts;
 
-import com.applitools.eyes.*;
-import com.applitools.eyes.selenium.Configuration;
-import com.applitools.eyes.selenium.ClassicRunner;
-import com.applitools.eyes.selenium.Eyes;
-import com.applitools.eyes.selenium.fluent.Target;
+import com.applitools.eyes.ProxySettings;
+import com.applitools.eyes.StdoutLogHandler;
+import com.applitools.eyes.appium.Eyes;
+import com.applitools.eyes.config.Configuration;
+import com.applitools.eyes.visualgrid.model.IosDeviceInfo;
+import com.applitools.eyes.visualgrid.model.IosDeviceName;
+import com.applitools.eyes.visualgrid.services.VisualGridRunner;
+import io.appium.java_client.ios.IOSDriver;
+import org.openqa.selenium.remote.DesiredCapabilities;
+import org.testng.annotations.Test;
 
-import org.openqa.selenium.By;
-import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.chrome.ChromeDriver;
-import org.junit.jupiter.api.Test;
+import java.net.URL;
 
 public class BasicDemo {
 
+	public final static String SAUCE_USERNAME = System.getenv("SAUCE_USERNAME");
+	public final static String SAUCE_ACCESS_KEY = System.getenv("SAUCE_ACCESS_KEY");
+	public final static String SAUCE_SELENIUM_URL = String.format("https://%s:%s@ondemand.us-west-1.saucelabs.com:443/wd/hub", SAUCE_USERNAME, SAUCE_ACCESS_KEY);
+
 	@Test
-        public void test() {
-
-		// Use Chrome browser
-		WebDriver driver = new ChromeDriver();
-
-		// Initialize the Runner for your test.
-		EyesRunner runner = new ClassicRunner();
-
-		// Initialize the eyes SDK
-		Eyes eyes = new Eyes(runner);
-
-		setUp(eyes);
-		
+	public void test() throws Exception {
+		DesiredCapabilities capabilities = new DesiredCapabilities();
+		capabilities.setCapability("platformName", "iOS");
+		capabilities.setCapability("deviceName", "iPhone XS Simulator");
+		capabilities.setCapability("app", "storage:ad215039-24a9-4a1a-a8e5-1ea622196789");
+		capabilities.setCapability("platformVersion", "14");
+		capabilities.setCapability("automationName", "XCUITest");
+		capabilities.setCapability("name", "UFG Native");
+		capabilities.setCapability("newCommandTimeout", 300);
+		capabilities.setCapability("fullReset", false);
+		IOSDriver driver = new IOSDriver<>(new URL(SAUCE_SELENIUM_URL), capabilities);
+		driver.findElementByName("Controls").click();
+		driver.findElementByName("Buttons").click();
+		VisualGridRunner visualGridRunner = new VisualGridRunner(10);
+		Eyes eyes = new Eyes(visualGridRunner);
+		Configuration configuration = eyes.getConfiguration();
+		configuration.addBrowser(new IosDeviceInfo(IosDeviceName.iPhone_8));
+		configuration.addBrowser(new IosDeviceInfo(IosDeviceName.iPhone_11_Pro));
+		configuration.addBrowser(new IosDeviceInfo(IosDeviceName.iPhone_12_Pro_Max));
+		eyes.setConfiguration(configuration);
+		eyes.setLogHandler(new StdoutLogHandler(true));
+		eyes.setProxy(new ProxySettings("http://localhost:8888"));
+		eyes.setApiKey("TKYcQIFGLNd0KxaoV72Ruw5CDPRUGEWmy1qqF9mTtqw110");
+		eyes.setBranchName("master");
+		eyes.setSaveNewTests(false);
 		try {
-
-			TestDemoApp(driver, eyes);
-
+			eyes.open(driver, "UFG Native", "Demo");
+			eyes.checkWindow();
+			eyes.closeAsync();
 		} finally {
-
-			tearDown(driver, runner);
-
+			driver.quit();
+			eyes.abortAsync();
+			visualGridRunner.getAllTestResults();
 		}
-
 	}
-
-
-	private static void setUp(Eyes eyes) {
-
-		// Initialize the eyes configuration.
-		Configuration config = new Configuration();
-		
-		// Add this configuration if your tested page includes fixed elements.
-		//config.setStitchMode(StitchMode.CSS);
-
-	
-		// You can get your api key from the Applitools dashboard
-		config.setApiKey("APPLITOOLS_API_KEY");
-
-		// set new batch
-		config.setBatch(new BatchInfo("Demo batch"));
-
-		// set the configuration to eyes
-		eyes.setConfiguration(config);
-	}
-
-	private static void TestDemoApp(WebDriver driver, Eyes eyes) {
-		// Set AUT's name, test name and viewport size (width X height)
-		// We have set it to 800 x 600 to accommodate various screens. Feel free to
-		// change it.
-		eyes.open(driver, "Demo App", "Smoke Test", new RectangleSize(800, 600));
-
-		// Navigate the browser to the "ACME" demo app.
-		driver.get("https://demo.applitools.com");
-
-		// To see visual bugs after the first run, use the commented line below instead.
-		// driver.get("https://demo.applitools.com/index_v2.html");
-
-		// Visual checkpoint #1 - Check the login page. using the fluent API
-		// https://applitools.com/docs/topics/sdk/the-eyes-sdk-check-fluent-api.html?Highlight=fluent%20api
-		eyes.check(Target.window().fully().withName("Login Window"));
-
-		// This will create a test with two test steps.
-		driver.findElement(By.id("log-in")).click();
-
-		// Visual checkpoint #2 - Check the app page.
-		eyes.check(Target.window().fully().withName("App Window"));
-
-		// End the test.
-		eyes.closeAsync();
-
-	}
-	
-	private static void tearDown(WebDriver driver, EyesRunner runner) {
-		driver.quit();
-
-		// Wait and collect all test results
-		// we pass false to this method to suppress the exception that is thrown if we
-		// find visual differences
-		TestResultsSummary allTestResults = runner.getAllTestResults(false);
-
-		// Print results
-		System.out.println(allTestResults);
-	}
-
 }
